@@ -12,7 +12,7 @@ API_KEY = config["API_KEY"]
 SECRET_KEY = config["SECRET_KEY"]
 AMOUNT_DCA = float(config["AMOUNT_DCA"])
 TELEGRAM_KEY = config["TELEGRAM_KEY"]
-DCA_CHANNEL = config["DCA_CHANNEL"]
+# DCA_CHANNEL = config["DCA_CHANNEL"]
 PRIVATE_CHAT = config["PRIVATE_CHAT"]
 PORTFOLIO = config["PORTFOLIO"]
 

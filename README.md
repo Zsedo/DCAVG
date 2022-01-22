@@ -1,36 +1,21 @@
+Forked from jerryfane/DCAVG
 
-# DCAVG: Bitcoin Daily Dollar Cost Averaging (DCA)
-**Tool that allows you to buy Bitcoin automatically every day (or almost every day)**
+This script buys cryptocurrencies from Binance depending on what you specify in the config. Whatever allocation is not specified, the remainder is split between top5 cryptocurrencies (excluding stablecoins) based on runtime status on coingecko.
 
-With this tool you will never forget to buy your daily bitcoins. Indeed, you can use it to buy Bitcoin automatically through the API of various exchanges, at the moment Binance and Coinbase Pro. The tool buys a predefined amount of Bitcoin through a "MARKET" trade for BTC-EUR. 
+Main script is DCAT5.py.
+You need to create a markdown file called "config" in the same folder as DCAT5.
+You need to have sufficient USDT balance on Binance.
 
-If the EURO value of Bitcoin to buy is less than 10EURO or 0.001BTC, which are the minimum amount required to trade on Binance and Coinbase, then it postpones the purchase for the following days. It will save the amount it would have bought until it reaches at least this minimum required amount. 
+Config structure
+API_KEY: your binance api key
+SECRET_KEY: your binance secret key
+AMOUNT_DCA: amount you will be spending (in USDT)
+PORTFOLIO: here you put in the desired allocation into coins, it must sum to 1 or lower (the remained is put into top 5 cryptocurrencies)
+    DOT: 0.1
+    FTM: 0.05
+TELEGRAM_KEY: telegram key of the bot
+PRIVATE_CHAT: id of your telegram chat so bot can send you messages
 
-All the information saved daily, are stored on `./src/datasets/data.csv`, and it will be possible to receive automatically a report in .xlsx format to analyze the data of purchases through a telegram bot. 
+To create a telegram bot, follow these instructions: https://core.telegram.org/bots#6-botfather
 
-Who will deploy this tool, will be able to easily manage multiple users, and configure their settings on `./src/datasets/users.csv`, moreover he will need to insert his telegram keys to the `./src/telegram/secrets.py` file. In this way it will be possible to integrate a bot on telegram to manage report sharing for all users. 
-
-The telegram bot must have been started by running the [DCAVG_telegram_bot.py](https://github.com/jerryfane/DCAVG/blob/master/src/telegram/DCAVG_telegram_bot.py).
-
-While to start the DCAVG bot just run `./src/DCAVG.py`. 
-
----
-
-### Updates
-
-#### March 7, 2021
-
-A new feature has been introduced that allows users to increase the amount of BTC to buy automatically, if the price of Bitcoin has decreased from the day before. This feature is configurable for each user in the file `./src/datasets/users.csv`.
-
-Basically if the user wants to buy 1 euro of Bitcoin per day, and the price of BTC has decreased by 10% compared to the previous day, then he will buy 1.1 euro. 
-
----
-
-### I developed this tool out of personal need, I gladly accept external help to develop it further.
-
-## To do
-
- - ~~Add Telegram message notification system~~
- - Add an automatic USDT recharge system to your account directly from FIAT and/or ERC-20 wallets.
- - ~~Allow you to manage the purchase of Bitcoin for multiple users with centralized funds management~~ *solved with Exchange API*
- - Allows you to manage the purchase of Bitcoin for multiple users with decentralized fund management 
+To get your chat id, follow these instructions: https://stackoverflow.com/questions/32423837/telegram-bot-how-to-get-a-group-chat-id/38388851#38388851
