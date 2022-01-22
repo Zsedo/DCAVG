@@ -3,3 +3,4 @@ src/DCAVG_session.session
 *.session
 excel_files/
 __pycache__/
+config

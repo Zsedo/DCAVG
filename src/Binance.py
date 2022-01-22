@@ -16,11 +16,12 @@ class BinanceException(Exception):
         else:
             self.code = None
             self.msg = None
-        message = f"{status_code} [{self.code}] {self.msg}"
+        message = "{status_code} [{code}] {msg}".format(status_code=self.status_code, code = self.code, msg = self.msg)
 
         # Python 2.x
         # super(BinanceException, self).__init__(message)
         super().__init__(message)
+
 
 class Binance():
     def __init__(self, API_KEY, SECRET_KEY):
@@ -32,19 +33,24 @@ class Binance():
             'X-MBX-APIKEY': API_KEY
         }
 
+    def get_signature(self,params):
+        query_string = urlencode(params)
+        signature = hmac.new(self.SECRET_KEY.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256).hexdigest()
+        return signature
+
     def get_servertime(self):
-        PATH =  '/api/v1/time'
+        PATH = '/api/v3/time'
         params = None
 
-        timestamp = int(time.time() * 1000)
+        # timestamp = int(time.time() * 1000)
 
         url = urljoin(self.BASE_URL, PATH)
         r = requests.get(url, params=params)
         if r.status_code == 200:
-            #print(json.dumps(r.json(), indent=2))
+            # print(json.dumps(r.json(), indent=2))
             data = r.json()
             return data['serverTime']
-            #print(f"diff={timestamp - data['serverTime']}ms")
+            # print(f"diff={timestamp - data['serverTime']}ms")
         else:
             raise BinanceException(status_code=r.status_code, data=r.json())
 
@@ -75,9 +81,11 @@ class Binance():
         else:
             raise BinanceException(status_code=r.status_code, data=r.json())
 
-
-    def create_binance_order(self, symbol, side, Type, quantity, price=0):
-        PATH = '/api/v3/order'
+    def create_binance_order(self, symbol, side, Type, quantity, price=0, test = False):
+        if test:
+            PATH = '/api/v3/order/test'
+        else:
+            PATH = '/api/v3/order'
         timestamp = int(time.time() * 1000)
 
         params = {
@@ -95,8 +103,7 @@ class Binance():
             params.pop('price')
             params.pop('timeInForce')
 
-        query_string = urlencode(params)
-        params['signature'] = hmac.new(self.SECRET_KEY.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256).hexdigest()
+        params['signature'] = self.get_signature(params)
 
         url = urljoin(self.BASE_URL, PATH)
         r = requests.post(url, headers=self.headers, params=params)
@@ -106,12 +113,38 @@ class Binance():
         else:
             raise BinanceException(status_code=r.status_code, data=r.json())
 
-    def buy_BTC(self, Type, quantity, price = 0):
-        #symbol = 'BTCUSDT'
-        symbol = 'BTCEUR'
-        side = 'BUY'
+    def get_exchange_info(self,**params):
+        PATH = "/api/v3/exchangeInfo"
 
-        if Type == 'MARKET': order_data = self.create_binance_order(symbol, side, Type, quantity)
-        elif Type == 'LIMIT': order_data = self.create_binance_order(symbol, side, Type, quantity, price)
-        else: return "can't recognize type order"
-        return order_data
+        url = urljoin(self.BASE_URL, PATH)
+        r = requests.get(url, headers=self.headers, params=params)
+        if r.status_code == 200:
+            return r.json()
+        else:
+            raise BinanceException(status_code=r.status_code, data=r.json())
+
+    def get_wallet_balance(self):
+        PATH = "/sapi/v1/capital/config/getall"
+
+        params = {
+            'timestamp': int(time.time() * 1000)
+        }
+
+        params['signature'] = self.get_signature(params)
+
+        url = urljoin(self.BASE_URL, PATH)
+        r = requests.get(url, headers=self.headers, params = params)
+        if r.status_code == 200:
+            return r.json()
+        else:
+            raise BinanceException(status_code=r.status_code, data=r.json())
+
+    # def buy_BTC(self, Type, quantity, price = 0):
+    #     #symbol = 'BTCUSDT'
+    #     symbol = 'BTCEUR'
+    #     side = 'BUY'
+
+    #     if Type == 'MARKET': order_data = self.create_binance_order(symbol, side, Type, quantity)
+    #     elif Type == 'LIMIT': order_data = self.create_binance_order(symbol, side, Type, quantity, price)
+    #     else: return "can't recognize type order"
+    #     return order_data
