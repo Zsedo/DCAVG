@@ -1,6 +1,7 @@
 *.ipynb
 src/DCAVG_session.session
 *.session
+configurations
 excel_files/
 __pycache__/
 config

@@ -15,15 +15,96 @@
 # import pandas as pd
 
 from decimal import Decimal
+from Binance import Binance
+import yaml
+
 
 def Diff(li1, li2):
     li_dif = [i for i in li1 + li2 if i not in li2]
     # li_dif = [i for i in li1 + li2 if i not in li1 or i not in li2]
     return li_dif
 
+
 def fexp(number):
     (sign, digits, exponent) = Decimal(number).as_tuple()
     return len(digits) + exponent - 1
+
+
+def main_invest(cg, bot, CONFIG_FILE, DEBUG = False):
+    # CONFIG_FILE = 'configurations/users/001_zsedo'
+    with open(CONFIG_FILE, 'r') as config_file:
+        config = yaml.load(config_file, Loader = yaml.BaseLoader)
+
+    API_KEY = config["API_KEY"]
+    SECRET_KEY = config["SECRET_KEY"]
+    AMOUNT_DCA = float(config["AMOUNT_DCA"])
+    PRIVATE_CHAT = config["PRIVATE_CHAT"]
+    PORTFOLIO = config["PORTFOLIO"]
+    TOP_N = int(config["TOP_N"])
+
+    # read top N + 20 coins (we will only need 5 in end)
+    topNext = cg.get_coins_markets(vs_currency="USD",per_page=TOP_N + 10, order="market_cap_desc")
+    # stablecoins = cg.get_coins_markets(vs_currency="USD",per_page=10, order="market_cap_desc",category="stablecoin")
+
+    # get tickers
+    tickersN = [coin["symbol"] for coin in topNext]
+
+    # eliminate stablecoins / wrapped
+    stable_coin_symbols = ["usdt","usdc","busd","dai","ust","tust", "wbtc", "weth"]
+
+    # take top N
+    topN = [i.upper() for i in Diff(tickersN,stable_coin_symbols)[:5]]
+
+    # portfolio
+    try:
+        portfolio_tickers = list(PORTFOLIO.keys())
+        portfolio_weights = round(sum(float(i) for i in list(PORTFOLIO.values())),2)
+    except:
+        portfolio_tickers = []
+        portfolio_weights = 0
+
+    non_defined_portfolio = Diff(topN,portfolio_tickers)
+    all_tickers = portfolio_tickers + non_defined_portfolio
+
+    # weights for non defined
+    non_defined_weights = round((1.0 - portfolio_weights)/len(non_defined_portfolio),2)
+
+
+    # create market orders
+    exchange = Binance(API_KEY,SECRET_KEY)
+
+    for ticker in all_tickers:
+        try:
+            symbol = ticker + "USDT"
+            side = 'BUY'
+            Type = "MARKET"
+            # check lot sizes (for step size)
+            symbolinfo = exchange.get_exchange_info(symbol=symbol)
+            stepsize = float(symbolinfo["symbols"][0]["filters"][2]["stepSize"])
+            decimals = -fexp(stepsize)
+            # calculate quantity
+            price = float(exchange.get_price(symbol)["price"])
+            if ticker in portfolio_tickers:
+                portfolio_percent = float(PORTFOLIO[ticker])
+            else:
+                portfolio_percent = non_defined_weights
+            amount = AMOUNT_DCA*portfolio_percent
+            quantity = round(amount/price,decimals)
+            print(symbol)
+            print(amount)
+            print(price)
+            print(quantity)
+            print(decimals)
+            print(stepsize)
+            # create order
+            order_data = exchange.create_binance_order(symbol, side, Type, quantity, test = DEBUG)
+            # post to channel
+            message_str = yaml.dump(order_data)
+            # bot.send_message(text=message_str, chat_id=DCA_CHANNEL)
+            bot.send_message(text=message_str, chat_id=PRIVATE_CHAT)
+        except Exception as e:
+            print(e)
+            bot.send_message(text=message_str, chat_id=PRIVATE_CHAT)
 
 # def send_message_telegram(client, user_id, output):
 #     #destination_channel="https://t.me/{}".format(user)
