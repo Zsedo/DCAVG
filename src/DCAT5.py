@@ -10,7 +10,7 @@ with open(SHARED_CONFIG_FILE, 'r') as config_file:
     shared_config = yaml.load(config_file, Loader = yaml.BaseLoader)
 
 TELEGRAM_KEY = shared_config["TELEGRAM_KEY"]
-# DCA_CHANNEL = shared_config["DCA_CHANNEL"]
+DEBUG_CHANNEL = shared_config["DEBUG_CHANNEL"]
 
 # init some stuff
 # coingecko
@@ -26,4 +26,4 @@ configs.sort()
 configs = ["configurations/users/" + config for config in configs]
 
 for config_path in configs:
-    main_invest(cg = cg, bot = bot, CONFIG_FILE = config_path, DEBUG = True)
+    main_invest(cg = cg, bot = bot, CONFIG_FILE = config_path, DEBUG_CHANNEL = DEBUG_CHANNEL, DEBUG = False)

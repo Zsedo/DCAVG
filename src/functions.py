@@ -17,6 +17,7 @@
 from decimal import Decimal
 from Binance import Binance
 import yaml
+import json
 
 
 def Diff(li1, li2):
@@ -30,17 +31,25 @@ def fexp(number):
     return len(digits) + exponent - 1
 
 
-def main_invest(cg, bot, CONFIG_FILE, DEBUG = False):
+def main_invest(cg, bot, CONFIG_FILE, DEBUG_CHANNEL, DEBUG = False):
     # CONFIG_FILE = 'configurations/users/001_zsedo'
     with open(CONFIG_FILE, 'r') as config_file:
         config = yaml.load(config_file, Loader = yaml.BaseLoader)
 
+    ACTIVE = config["ACTIVE"] == "True"
+
+    if not ACTIVE:
+        print("Account deactivated. Skipping...")
+        return
+
+    USER_ID = config["USER_ID"]
     API_KEY = config["API_KEY"]
     SECRET_KEY = config["SECRET_KEY"]
     AMOUNT_DCA = float(config["AMOUNT_DCA"])
     PRIVATE_CHAT = config["PRIVATE_CHAT"]
     PORTFOLIO = config["PORTFOLIO"]
     TOP_N = int(config["TOP_N"])
+    CURRENCY = config["CURRENCY"]
 
     # read top N + 20 coins (we will only need 5 in end)
     topNext = cg.get_coins_markets(vs_currency="USD",per_page=TOP_N + 10, order="market_cap_desc")
@@ -53,7 +62,7 @@ def main_invest(cg, bot, CONFIG_FILE, DEBUG = False):
     stable_coin_symbols = ["usdt","usdc","busd","dai","ust","tust", "wbtc", "weth"]
 
     # take top N
-    topN = [i.upper() for i in Diff(tickersN,stable_coin_symbols)[:5]]
+    topN = [i.upper() for i in Diff(tickersN,stable_coin_symbols)[:TOP_N]]
 
     # portfolio
     try:
@@ -69,13 +78,12 @@ def main_invest(cg, bot, CONFIG_FILE, DEBUG = False):
     # weights for non defined
     non_defined_weights = round((1.0 - portfolio_weights)/len(non_defined_portfolio),2)
 
-
     # create market orders
     exchange = Binance(API_KEY,SECRET_KEY)
 
     for ticker in all_tickers:
         try:
-            symbol = ticker + "USDT"
+            symbol = ticker + CURRENCY
             side = 'BUY'
             Type = "MARKET"
             # check lot sizes (for step size)
@@ -90,21 +98,33 @@ def main_invest(cg, bot, CONFIG_FILE, DEBUG = False):
                 portfolio_percent = non_defined_weights
             amount = AMOUNT_DCA*portfolio_percent
             quantity = round(amount/price,decimals)
-            print(symbol)
-            print(amount)
-            print(price)
-            print(quantity)
-            print(decimals)
-            print(stepsize)
+            expected_outcome = {
+                "symbol": symbol,
+                "amount": amount,
+                "price": price,
+                "quantity": quantity,
+                "decimals": decimals,
+                "stepsize": stepsize
+            }
+
+            print(expected_outcome)
+
             # create order
             order_data = exchange.create_binance_order(symbol, side, Type, quantity, test = DEBUG)
             # post to channel
             message_str = yaml.dump(order_data)
+            message_str = message_str + "Expected outcome: " + str(expected_outcome)
             # bot.send_message(text=message_str, chat_id=DCA_CHANNEL)
             bot.send_message(text=message_str, chat_id=PRIVATE_CHAT)
+            # post success to debug
         except Exception as e:
             print(e)
-            bot.send_message(text=message_str, chat_id=PRIVATE_CHAT)
+            error_msg = "Error sending to: {0}".format(USER_ID)
+            bot.send_message(text=error_msg, chat_id=DEBUG_CHANNEL)
+            bot.send_message(text=str(e), chat_id=DEBUG_CHANNEL)
+    success_msg = "Completed sending to: {0}".format(USER_ID)
+    bot.send_message(text=success_msg, chat_id=DEBUG_CHANNEL)
+
 
 # def send_message_telegram(client, user_id, output):
 #     #destination_channel="https://t.me/{}".format(user)

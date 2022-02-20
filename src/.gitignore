@@ -5,3 +5,4 @@ configurations
 excel_files/
 __pycache__/
 config
+archive/*

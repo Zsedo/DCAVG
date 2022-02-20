@@ -18,4 +18,9 @@ PRIVATE_CHAT: id of your telegram chat so bot can send you messages
 
 To create a telegram bot, follow these instructions: https://core.telegram.org/bots#6-botfather
 
-To get your chat id, follow these instructions: https://stackoverflow.com/questions/32423837/telegram-bot-how-to-get-a-group-chat-id/38388851#38388851
+To get your chat id:
+- Open Telegram
+- Search for Telegram Bot Raw (@RawDataBot)
+- Open a chat with the bot
+- Press START
+- Under chat you will find your chat id
